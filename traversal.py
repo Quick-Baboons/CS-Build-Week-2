@@ -1,5 +1,5 @@
 from util import Player, Graph, Queue, Stack
-from thesecrets import matt, MATT_TOKEN, API_URL
+from thesecrets import bryan, BRYAN_TOKEN, API_URL
 import time, requests, pdb, random
 import multiprocessing as mp
 
@@ -13,28 +13,31 @@ OPPOSITE_DIRECTION = {
 # === Initialize local script state ===
 
 # Initialize the local graph
+def sync_graph(g):
+    # Hit the /api/rooms/adlist endpoint and update the local graph with the returned adjacency list
+    r = bryan.requests.get(API_URL+"/api/rooms/adlist")
+    ad_list = r.json()
+
+    # Add vertices
+    for room_id in ad_list:
+        # Add room_id as a vertex if not in g
+        if room_id not in g.vertices:
+            g.add_vertex(room_id)
+
+    # Add edges
+    for room_id in ad_list:
+        neighbors = ad_list[room_id]
+        for i in range(len(neighbors)):
+            neighbor = neighbors[i]
+            neighbor_direction = list(neighbor.keys())
+            neighbor_direction = neighbor_direction[0]
+
+            neighbor_id = neighbor[neighbor_direction]
+            g.add_edge(room_id, str(neighbor_id), neighbor_direction)
+
+# First graph sync
 g = Graph()
-# Hit the /api/rooms/adlist endpoint and update the local graph with the returned adjacency list
-r = matt.requests.get(API_URL+"/api/rooms/adlist")
-ad_list = r.json()
-
-# Add vertices
-for room_id in ad_list:
-    # Add room_id as a vertex if not in g
-    if room_id not in g.vertices:
-        g.add_vertex(room_id)
-
-# Add edges
-for room_id in ad_list:
-    neighbors = ad_list[room_id]
-    for i in range(len(neighbors)):
-        neighbor = neighbors[i]
-        neighbor_direction = list(neighbor.keys())
-        neighbor_direction = neighbor_direction[0]
-
-        neighbor_id = neighbor[neighbor_direction]
-        
-        g.add_edge(room_id, str(neighbor_id), neighbor_direction)
+sync_graph(g)
         
 # === Find nearest unvisited room ===
 # Main function
@@ -139,16 +142,22 @@ def move(player, direction, visited):
 
 visited = {room for room in g.vertices}
 # Main script loop which calls find_nearest_unvisited()
-player = matt
+player = bryan
 time.sleep(1)
+# FULL TRAVERSAL
 while len(visited) < 500:
     path = find_nearest_unvisited(player, visited) # path is a list of directions
     print(f"Found shortest path \n {path}")
     for direction in path:
         move(player, direction, visited)
 
-
-# headers = {}
-# r = requests.post(API_URL+'/api/rooms/move', json={'direction': 's'})
-# res = r.json()
-# print('res', res)
+# print('currom', player.cur_room)
+# target = g.vertices[467]
+# for vertex in g.vertices:
+#     print(vertex)
+# path = g.bfs(player.cur_room, 467)
+# print('path: ', path)
+# Re-sync local graph/vertices with db
+    # g = Graph()
+    # sync_graph(g)
+    # visited = {room for room in g.vertices}

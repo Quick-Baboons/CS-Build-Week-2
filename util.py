@@ -48,7 +48,56 @@ class Graph:
             return self.vertices[vertex_id]
         else:
             raise IndexError("Vertex does not exist")
+    
+    # def bfs(self, starting_vertex, destination_vertex):
+    #     """
+    #     Return a list containing the shortest path from
+    #     starting_vertex to destination_vertex in
+    #     breath-first order.
+    #     """
+    #     queue = Queue()
+    #     queue.enqueue([starting_vertex])
+    #     visited = set()
+        
+    #     while queue.size() > 0:
+    #         path = queue.dequeue()
+    #         vertex = path[-1]
+    #         if vertex not in visited:
+    #             print(vertex)
+    #             if vertex == destination_vertex:
+    #     #           DO THE THING!
+    #                 return path
+    #             visited.add(vertex)
+    #             for next_vert in self.get_neighbors(vertex):
+    #                 new_path = list(path) 
+    #                 new_path.append(next_vert)
+    #                 queue.enqueue(new_path)
 
+
+    # def dfs(self, starting_vertex, destination_vertex):
+    #     """
+    #     Return a list containing a path from
+    #     starting_vertex to destination_vertex in
+    #     depth-first order.
+    #     """
+    #     stack = Stack()
+
+    #     stack.push([starting_vertex])
+        
+    #     stack_visited = set()
+        
+    #     while stack.size() > 0:
+    #         path = stack.pop()
+    #         vertex = path[-1]
+    #         if vertex not in stack_visited:
+    #             if vertex == destination_vertex:
+    #     #           DO THE THING!
+    #                 return path
+    #             stack_visited.add(vertex)
+    #             for next_vert in self.get_neighbors(vertex):
+    #                 new_path = list(path)
+    #                 new_path.append(next_vert)
+    #                 stack.push(new_path)
 
 class Queue:
     def __init__(self):
