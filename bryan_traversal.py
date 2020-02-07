@@ -1,7 +1,8 @@
 from util import Player, Graph, Queue, Stack
-from thesecrets import bryan, BRYAN_TOKEN, API_URL
+from thesecrets import requests_bryan, BRYAN_TOKEN, API_URL, LS_API_URL
 import time, requests, pdb, random
-import multiprocessing as mp
+from miner import mine_coin
+from cpu import *
 
 OPPOSITE_DIRECTION = {
     'n': 's',
@@ -10,7 +11,7 @@ OPPOSITE_DIRECTION = {
     'w': 'e'
 }
 UNIQUE_ROOMS = { 
-   'well':{ 
+   'wish':{ 
       'full_name': 'Wishing Well',
       'room_id':'55'
    },
@@ -53,14 +54,16 @@ UNIQUE_ROOMS = {
    'trans':{ # Spend coins to make new equipment
       'full_name': 'The Transmogriphier',
       'room_id':'495'
-   },
-   'fifty':{
-       'full_name': 'room 50',
-       'room_id': '55'
    }
 }
 
 # === Initialize local script state ===
+# Initialize player
+r = requests_bryan.get(API_URL+"/api/rooms/init")
+player_data = r.json()["player"]
+bryan = Player("Bryan", str(player_data['room_id']), requests_bryan)
+# Sleep to clear cooldown from init
+time.sleep(1)
 
 # Initialize the local graph
 def sync_graph(g):
@@ -89,8 +92,6 @@ def sync_graph(g):
 # First graph sync
 g = Graph()
 sync_graph(g)
-# Sleep to clear cooldown from init
-time.sleep(1)
 
 # === Find nearest unvisited room ===
 # Main function
@@ -174,8 +175,8 @@ def path_to_room_id(player, target_room_id):
 
 item_counter = 0
 def pick_up_items(arr):
-    for item in arr:
-        cooldown = 7.5
+    for item in arr[0:-1]:
+        cooldown = 8
         # we don't want tiny treasure because it takes up space and we can't pick up more than 10
         # if item != 'tiny treasure' or item_counter < 8:
         if item != '':
@@ -217,7 +218,7 @@ def move(player, direction, visited):
     # After moving:
     new_room_id = str(res['room_id'])
     print(f"Moved to room {new_room_id}")
-    cooldown = res['cooldown']
+    cooldown = res['cooldown'] + 0.1
     # Add room_id to visited set
     visited.add(new_room_id)
     # Add new vertex if new_room_id is not present in g.vertices
@@ -231,10 +232,29 @@ def move(player, direction, visited):
     print(f"Cooling down for {cooldown} seconds")
     time.sleep(cooldown)
     # --pick up items--
-    if len(res['items']) > 0:
-        pick_up_items(res["items"].split(','))
+    # if len(res['items']) > 0:
+    #     pick_up_items(res["items"].split(','))
 
+def examine_well(player_token):
+    headers = {
+        "Authorization": f"Token {player_token}",
+        "Content-Type": "application/json"
+    }
+    payload = {"name": "Wishing Well"}
+    r = player.requests.post(LS_API_URL+'/api/adv/examine/', json=payload, headers=headers)
+    data = r.json()
+    print(data)
+    clue = data.get('description')
+    # clue = "You see a faint pattern in the water...\n\n10000010\n00000001\n01001101\n01001000\n00000001\n10000010\n00000001\n01101001\n01001000\n00000001\n10000010\n00000001\n01101110\n01001000\n00000001\n10000010\n00000001\n01100101\n01001000\n00000001\n10000010\n00000001\n00100000\n01001000\n00000001\n10000010\n00000001\n01111001\n01001000\n00000001\n10000010\n00000001\n01101111\n01001000\n00000001\n10000010\n00000001\n01110101\n01001000\n00000001\n10000010\n00000001\n01110010\n01001000\n00000001\n10000010\n00000001\n00100000\n01001000\n00000001\n10000010\n00000001\n01100011\n01001000\n00000001\n10000010\n00000001\n01101111\n01001000\n00000001\n10000010\n00000001\n01101001\n01001000\n00000001\n10000010\n00000001\n01101110\n01001000\n00000001\n10000010\n00000001\n00100000\n01001000\n00000001\n10000010\n00000001\n01101001\n01001000\n00000001\n10000010\n00000001\n01101110\n01001000\n00000001\n10000010\n00000001\n00100000\n01001000\n00000001\n10000010\n00000001\n01110010\n01001000\n00000001\n10000010\n00000001\n01101111\n01001000\n00000001\n10000010\n00000001\n01101111\n01001000\n00000001\n10000010\n00000001\n01101101\n01001000\n00000001\n10000010\n00000001\n00100000\n01001000\n00000001\n10000010\n00000001\n10100001\n10000010\n00000010\n11100010\n10101000\n00000001\n00000010\n10000010\n00000010\n10010100\n10101011\n00000001\n00000010\n01001000\n00000001\n10000010\n00000001\n00110111\n10000010\n00000010\n00000101\n10101000\n00000001\n00000010\n10000010\n00000010\n00110011\n10101011\n00000001\n00000010\n01001000\n00000001\n10000010\n00000001\n10111110\n10000010\n00000010\n11001011\n10101000\n00000001\n00000010\n10000010\n00000010\n10111100\n10101011\n00000001\n00000010\n01001000\n00000001\n00000001"
+    clue = clue[41:]
+    clue = clue.split('\n')
+    # print(clue)
+    cpu = CPU()
+    cpu.load(clue)
+    return cpu.run()
+    
 
+    # return clue
 
 visited = {room for room in g.vertices}
 # Main script loop which calls find_nearest_unvisited()
@@ -253,28 +273,29 @@ if False:
         visited = {room for room in g.vertices}
 
 # Navigate to Shop
-# path_to_shop = path_to_room_id(player, UNIQUE_ROOMS['shop']['room_id'])
-# print(path_to_shop)
-# for direction in path_to_shop:
-#     move(player, direction, visited)
-
-# Navigate to Wishing Well
-# path_to_well = path_to_room_id(player, UNIQUE_ROOMS['well']['room_id'])
-# print(path_to_well)
-# for direction in path_to_well:
-#     move(player, direction, visited)
-
-# Navigate to 50
-path_to_fifty = path_to_room_id(player, UNIQUE_ROOMS['fifty']['room_id'])
-print(path_to_fifty)
-for direction in path_to_fifty:
+# path = path_to_room_id(player, UNIQUE_ROOMS['wish']['room_id'])
+path = path_to_room_id(player, '492')
+print(path)
+for direction in path:
     move(player, direction, visited)
 
-# Navigate to Linh
-# path_to_linh = path_to_room_id(player, UNIQUE_ROOMS['linh']['room_id'])
-# print(path_to_linh)
-# for direction in path_to_linh:
-#     move(player, direction, visited)
+# Try mining a coin
+# mined = False
+# while True:
+    # if player.cur_room != 55:
+    #     path = path_to_room_id(player, UNIQUE_ROOMS['wish']['room_id'])
+    #     print(path)
+    #     for direction in path:
+    #         move(player, direction, visited)
+    # # if player.cur_room == 55:
+    # room_target = examine_well(BRYAN_TOKEN)
+    # print('ROOM TARGET', str(room_target))
+    # new_path = path_to_room_id(player, str(room_target))
+    # for direction in new_path:
+    #     print(new_path)
+    #     move(player, direction, visited)
+    # while not mined:
+    #     mined = mine_coin(BRYAN_TOKEN)
 
 
 # headers = {}

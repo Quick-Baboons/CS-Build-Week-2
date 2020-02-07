@@ -7,6 +7,10 @@ class Player:
         self.cur_room = cur_room
         self.requests = requests_session
 
+    # def __init__(self, name, requests_session):
+    #     self.name = name
+    #     # self.cur_room = cur_room
+    #     self.requests = requests_session
 
 OPPOSITE_DIRECTION = {
     'n': 's',
