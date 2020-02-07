@@ -60,10 +60,11 @@ def mine_coin(player_token):
 
         r = requests.post(LS_API_URL + '/api/bc/mine/', headers=headers, json=post_data)
         data = r.json()
-        print(data)
-        if len(data['errors']) > 0:
-            print(data['errors'])
+        if data['messages'][0] == "New Block Forged":
+            print(data['messages'][0])
+            time.sleep(data['cooldown'])
+            return True
+        else:
+            print(data['errors'][0])
             time.sleep(data['cooldown'])
             return False
-        time.sleep(data['cooldown'])
-        return True

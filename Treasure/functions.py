@@ -48,7 +48,7 @@ def move_and_update_graph(player, direction, visited):
     # After moving:
     new_room_id = str(res['room_id'])
     print(f"Moved to room {new_room_id}")
-    cooldown = res['cooldown'] + 0.1
+    cooldown = res['cooldown'] + 1
     # Add room_id to visited set
     visited.add(new_room_id)
     # Add new vertex if new_room_id is not present in g.vertices
@@ -148,12 +148,14 @@ def traverse_path(player, path):
     """
     for direction in path:
         payload = {'direction': direction}
+        print(f"Moving {direction}")
         r = player.requests.post(API_URL+'/api/rooms/move', json=payload)
         res = r.json()
+        print("response from hitting /move", res)
         # After moving:
         new_room_id = str(res['room_id'])
         print(f"Moved to room {new_room_id}")
-        cooldown = res['cooldown'] + 0.1
+        cooldown = res['cooldown'] + 0.5
         # Update player.cur_room
         player.cur_room = new_room_id
         # Sleep for cooldown seconds
@@ -167,10 +169,13 @@ def traverse_path(player, path):
 def go_to_shop(player):
     pass
 
-def path_to_room_id(room_id, target_room_id, g):
+def path_to_room_id(player, target_room_id, g):
     """
     Takes in a Player object and a target room id and returns the shortest path (using unweighted graph)
     """
+    room_id = player.cur_room
+    if room_id == target_room_id:
+        return []
     # room_id = player.cur_room
     neighbors = g.get_neighbors(room_id)
     q = Queue()
@@ -217,40 +222,47 @@ def make_it_rain(player, player_token, g):
     Mines coins until the end of time.
     """
     # Check to see if we know the mining room for player
-    # Recall to origin
-    headers = {
-        "Authorization": f"Token {player_token}",
-        "Content-Type": "application/json"
-    }
-    r = requests.post(LS_API_URL+'/api/adv/recall', headers=headers)
-    res = r.json()
-    print(f"Recalled to origin, cooling down for {res['cooldown']} seconds.")
-    time.sleep(res['cooldown'])
-    player.cur_room = '0'
-    # Go to wishing well
-    path_to_wishing_well = dijk_path(player.cur_room, '55')
-    # path_to_wishing_well = path_to_room_id(player.cur_room, '55', g)
-    traverse_path(player, path_to_wishing_well)
-    # Examine the wishing well
-    post_body = { "name": "well" }
-    r = requests.post(LS_API_URL+'/api/adv/examine/', json=post_body, headers=headers)
-    res = r.json()
-    secret_room_binary = res['description']
-    secret_room_binary = secret_room_binary[41:]
-    secret_room_binary = secret_room_binary.split('\n')
-    # secret_room_binary = res.get('description')
-    # Parse the returned binary and set the mining_room_id to player.mining_room
-    cpu = CPU()
-    cpu.load(secret_room_binary)
-    mining_room = cpu.run()
-    player.mining_room = mining_room
+    miner_room = player.db.get_item("miner_room")
+
+    if miner_room == "":
+        # Recall to origin
+        headers = {
+            "Authorization": f"Token {player_token}",
+            "Content-Type": "application/json"
+        }
+        r = requests.post(LS_API_URL+'/api/adv/recall', headers=headers)
+        res = r.json()
+        print(f"Recalled to origin, cooling down for {res['cooldown']} seconds.")
+        time.sleep(res['cooldown'])
+        player.cur_room = '0'
+
+        # Go to wishing well
+        # path_to_wishing_well = dijk_path(player.cur_room, '55')
+        path_to_wishing_well = path_to_room_id(player, '55', g)
+        traverse_path(player, path_to_wishing_well)
+
+        # Examine the wishing well
+        post_body = { "name": "well" }
+        r = requests.post(LS_API_URL+'/api/adv/examine/', json=post_body, headers=headers)
+        res = r.json()
+        secret_room_binary = res['description']
+        secret_room_binary = secret_room_binary[41:]
+        secret_room_binary = secret_room_binary.split('\n')
+
+        # Parse the returned binary and set the mining_room_id to player.mining_room
+        cpu = CPU()
+        cpu.load(secret_room_binary)
+        miner_room = cpu.run()
+        player.db.set_item("miner_room", miner_room)
     
     # Traverse to the mining room we just found
-    print('⛏ Moving to the mining room! ⛏')
-    # path_to_mining_room = path_to_room_id(player.cur_room, player.mining_room, g)
-    path_to_mining_room = dijk_path(player.cur_room, player.mining_room)
+    print('⛏ Moving to the miner room! ⛏')
+    path_to_mining_room = path_to_room_id(player, player.db.get_item("miner_room"), g)
+    # path_to_mining_room = dijk_path(player.cur_room, player.mining_room)
     traverse_path(player, path_to_mining_room)
+
     # Mine until we find a coin
     mined = False
     while not mined:
         mined = mine_coin(player_token)
+    player.db.set_item("miner_room", "")

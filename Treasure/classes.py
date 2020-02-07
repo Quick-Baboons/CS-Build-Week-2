@@ -1,13 +1,4 @@
-class Player:
-    """
-    Holds the player state necessary for the script
-    """
-    def __init__(self, name, cur_room, requests_session):
-        self.name = name
-        self.cur_room = cur_room
-        self.requests = requests_session
-        self.mining_room = None
-
+from db import Database
 
 OPPOSITE_DIRECTION = {
     'n': 's',
@@ -15,6 +6,68 @@ OPPOSITE_DIRECTION = {
     'e': 'w',
     'w': 'e'
 }
+
+UNIQUE_ROOMS = {
+    'wish': {  # Go here to mine lambda coins
+        'full_name': 'Wishing Well',
+        'room_id': '55'
+    },
+    'shop': {  # Sell items for gold here
+        'full_name': 'Shop',
+        'room_id': '1'
+    },
+    'origin': {  # Starting room
+        'full_name': 'A brightly lit room',
+        'room_id': '0'
+    },
+    'holloway': {  # Shrine to gain FLY ability
+        'full_name': 'The Peak of Mt. Holloway',
+        'room_id': '22'
+    },
+    "grave": {  # Shrine to gain CARRY ability to put items on a ghost
+        'full_name': 'Glasowyn\'s Grave',
+        'room_id': '499'
+    },
+    "linh": {  # Shrine pray to get DASH
+        'full_name': 'Linh\'s Shrine',
+        'room_id': '461'
+    },
+    "pirate": {  # Name Changer, gain PRAY & MINE ability
+        'full_name': 'Pirate Ry\'s',
+        'room_id': '467'
+    },
+    "sandofsky": {  # Shrine to gain RECALL ability
+        'full_name': 'Sandofsky\'s Sanctum',
+        'room_id': '492'
+    },
+    'fully': {  # Shrine to gain WARP ability to warp to underworld
+        'full_name': 'Fully Shrine',
+        'room_id': '374'
+    },
+    "aaron": {  # Not a shrine, Herin exists knowledge gathered by Arron of Web19/CS21
+        'full_name': 'Arron\'s Athenaeum',
+        'room_id': '486'
+    },
+    'trans': {  # Spend coins to make new equipment
+        'full_name': 'The Transmogriphier',
+        'room_id': '495'
+    }
+}
+
+
+class Player:
+    """
+    Holds the player state necessary for the script
+    """
+
+    def __init__(self, name, cur_room, requests_session):
+        self.name = name.lower()
+        self.cur_room = cur_room
+        self.requests = requests_session
+        self.db = Database(self.name)
+        self.db.load_db()
+
+
 class Graph:
     """
     Represent a graph as a dictionary of vertices mapping labels to edges.
