@@ -6,6 +6,7 @@ class Player:
         self.name = name
         self.cur_room = cur_room
         self.requests = requests_session
+        self.mining_room = None
 
 
 OPPOSITE_DIRECTION = {

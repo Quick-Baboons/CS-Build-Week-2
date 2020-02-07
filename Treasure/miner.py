@@ -60,38 +60,10 @@ def mine_coin(player_token):
 
         r = requests.post(LS_API_URL + '/api/bc/mine/', headers=headers, json=post_data)
         data = r.json()
-        if 'errors' in data:
+        print(data)
+        if len(data['errors']) > 0:
             print(data['errors'])
             time.sleep(data['cooldown'])
             return False
         time.sleep(data['cooldown'])
         return True
-
-
-
-
-# if __name__ == '__main__':
-#     # What node are we interacting with?
-    
-#     node = "https://lambda-treasure-hunt.herokuapp.com/api/bc"
-
-#     coins_mined = 0
-
-#     player = bryan
-#     while True:
-#         # Get the last proof from the server
-#         time.sleep(1)
-#         r = bryan.requests.get("https://lambda-treasure-hunt.herokuapp.com/api/bc/last_proof/")
-#         data = r.json()
-
-#         data['proof']
-
-#         new_difficulty = data['difficulty']
-#         new_proof = proof_of_work(data['proof'], new_difficulty)
-        
-#         post_data = {"proof": new_proof}
-
-#         r = bryan.requests.post(url=node + '/mine/', json=post_data)
-#         data = r.json()
-#         print(data)
-#         time.sleep(data.cooldown)

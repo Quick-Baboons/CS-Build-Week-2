@@ -1,31 +1,10 @@
-from util import Player, Graph, Queue, Stack
-from thesecrets import SEAN_TOKEN, API_URL
-import time, requests, pdb, random
-import multiprocessing as mp
+# from Treasure.thesecrets import API_URL
+
+from classes import OPPOSITE_DIRECTION
+
+from thesecrets import API_URL
+import requests
 import math
-
-
-
-# requests_sean = requests.Session()
-# requests_sean.headers.update({
-#     "Authorization": SEAN_TOKEN,
-#     'Content-Type': 'application/json'
-# })
-# r = requests_sean.get(API_URL+"/api/rooms/init")
-# player_data = r.json()["player"]
-
-# sean = Player("SEAN", str(player_data['room_id']), requests_sean)
-
-
-
-
-OPPOSITE_DIRECTION = {
-    'n': 's',
-    's': 'n',
-    'e': 'w',
-    'w': 'e'
-}
-
 
 
 
@@ -140,7 +119,6 @@ class WeightedGraph:
 
 
     
-
     # val = room
     # priority = weight
     # direction = direction
@@ -170,6 +148,7 @@ class WeightedGraph:
 
       # If that node is finish, we've found the shortest path
       if current_node == finish:
+
         current_vertex = finish
         direction = previous_vertices[finish][1]
         path = []
@@ -189,13 +168,16 @@ class WeightedGraph:
       # If distance from A is shorter than the recorded distance on distances_from_start
         # Update distances_from_start, previous_vertices and add it to the queue for future processing
       for neighbor in self.adjacency_list[current_node]:
-
         new_distance = distances_from_start[current_node] + neighbor['weight']
-        if new_distance < distances_from_start[neighbor['v']]:    
+        if new_distance == distances_from_start[neighbor['v']]: 
           distances_from_start[neighbor['v']] = new_distance
           previous_vertices[neighbor['v']] = [current_node, neighbor['direction']] 
           nodes.enqueue(neighbor['v'], new_distance)
 
+        if new_distance < distances_from_start[neighbor['v']]: 
+          distances_from_start[neighbor['v']] = new_distance
+          previous_vertices[neighbor['v']] = [current_node, neighbor['direction']] 
+          nodes.enqueue(neighbor['v'], new_distance)
 
 
     
@@ -239,7 +221,7 @@ for current_room in res_data:
 
 
 
-# add trap
+# add the rest
 for current_room in res_data:
     for direction_data in res_data[current_room]:
         weight = direction_data['weight']
@@ -267,16 +249,32 @@ for current_room in res_data:
             wg.add_edge(str(current_room), str(next_room), weight, direction)  
 
 
-# print(wg.adjacency_list)
-directions = wg.dijkstra("244", "28")
 
-current_location = '244'
-current_location_data = wg.adjacency_list['244']
-for direction in directions: 
-    for direction_data in current_location_data:
-        if direction_data['direction'] == direction:
-            current_location = direction_data['v']
-            current_location_data = wg.adjacency_list[direction_data['v']]
-            break
 
-print(current_location)
+
+
+def dijk_path(start, end):
+  directions = wg.dijkstra(start, end)
+  print("NUM OF DIRECTIONS", len(directions))
+  print(directions)
+  return directions
+
+
+
+
+def test_dijk(start, end):
+  directions = wg.dijkstra(start, end)
+  # tests
+  current_location = start
+  current_location_data = wg.adjacency_list[start]
+
+
+  for direction in directions: 
+      for direction_data in current_location_data:
+          if direction_data['direction'] == direction:
+              current_location = direction_data['v']
+              current_location_data = wg.adjacency_list[direction_data['v']]
+              break
+
+  return  {"Start:":start,"End":end, "directions":directions}
+
